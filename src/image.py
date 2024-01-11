@@ -36,7 +36,6 @@ st.title('😱Generative AI with Google API')
 uploaded_file = st.file_uploader("ファイルを選択してください", type=['avif', 'webp', 'png', 'jpg'])
 prompt = st.text_input('Prompt', 'この画像にタイトルをつけて。')
 api_key = st.text_input('Google AI Studio API Key' '')
-# "AIzaSyBmWC0GzLq4A9icYRgHc42mlz_JVEhz0-g"
 # APIキーの設定
 genai.configure(api_key=api_key)
 
