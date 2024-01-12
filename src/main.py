@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # Streamlitのインターフェース設定
 st.title('😱Generative AI with Google API')
-user_input = st.text_input("Enter your question:")
+user_input = st.text_area("Enter your question:", "")
 
 api_key = st.text_input('Google AI Studio API Key' '')
 
