@@ -101,7 +101,7 @@ def main():
             model = genai.GenerativeModel('gemini-pro-vision')
 
             st.write(prompt)
-            for image in images:
+            for image in images[:3]:
               st.image(image)
 
             pictures = [{
