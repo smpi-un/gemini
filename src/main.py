@@ -8,10 +8,10 @@ st.title('😱Generative AI with Google API')
 user_input = st.text_input("Enter your question:")
 
 api_key = st.text_input('Google AI Studio API Key' '')
-genai.configure(api_key="AIzaSyBmWC0GzLq4A9icYRgHc42mlz_JVEhz0-g")
 
-if user_input:
+if user_input.strip() != "" and api_key.strip() != "":
     # モデルの設定
+    genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-pro')
 
     # ユーザーの入力をモデルに渡す
