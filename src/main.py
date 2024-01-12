@@ -1,4 +1,4 @@
 import image
 import text
 
-text.main()
+image.main()
