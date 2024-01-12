@@ -31,42 +31,43 @@ def resize_image(image_data, max_size):
 
     return byte_arr.getvalue()
 
-st.title('😱Generative AI with Google API')
-# see also: https://docs.kanaries.net/ja/topics/Streamlit/streamlit-upload-file
-uploaded_file = st.file_uploader("ファイルを選択してください", type=['avif', 'webp', 'png', 'jpg'])
-prompt = st.text_input('Prompt', 'この画像にタイトルをつけて。')
-api_key = st.text_input('Google AI Studio API Key' '')
-# APIキーの設定
-genai.configure(api_key=api_key)
+def main():
+    st.title('😱Generative AI with Google API')
+    # see also: https://docs.kanaries.net/ja/topics/Streamlit/streamlit-upload-file
+    uploaded_file = st.file_uploader("ファイルを選択してください", type=['avif', 'webp', 'png', 'jpg'])
+    prompt = st.text_area('Prompt', 'この画像にタイトルをつけて。')
+    api_key = st.text_input('Google AI Studio API Key' '')
+    # APIキーの設定
+    genai.configure(api_key=api_key)
 
-if uploaded_file is not None and prompt.strip() != '':
-    pushed = st.button('Request')
+    if uploaded_file is not None and prompt.strip() != '':
+        pushed = st.button('Request')
 
-    if pushed:
-        # バイトとしてファイルを読み取る場合：
-        bytes_data = uploaded_file.getvalue()
-        # st.write(bytes_data)
+        if pushed:
+            # バイトとしてファイルを読み取る場合：
+            bytes_data = uploaded_file.getvalue()
+            # st.write(bytes_data)
 
-        ext = os.path.splitext(uploaded_file.name)[1][1:]
+            ext = os.path.splitext(uploaded_file.name)[1][1:]
 
 
-        # モデルの設定
-        model = genai.GenerativeModel('gemini-pro-vision')
+            # モデルの設定
+            model = genai.GenerativeModel('gemini-pro-vision')
 
-        st.write(prompt)
-        st.image(bytes_data)
+            st.write(prompt)
+            st.image(bytes_data)
 
-        resized_bytes_data = resize_image(bytes_data, 512)
+            resized_bytes_data = resize_image(bytes_data, 512)
 
-        picture = [{
-            'mime_type': f'image/{ext}',
-            'data': resized_bytes_data
-        }]
+            picture = [{
+                'mime_type': f'image/{ext}',
+                'data': resized_bytes_data
+            }]
 
-        response = model.generate_content(
-            contents=[prompt, picture[0]]
-        )
-        st.write(response.text)
+            response = model.generate_content(
+                contents=[prompt, picture[0]]
+            )
+            st.write(response.text)
 
-        st.image(resized_bytes_data)
+            st.image(resized_bytes_data)
 
