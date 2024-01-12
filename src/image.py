@@ -5,7 +5,7 @@ from PIL import Image
 import io
  
 
-def resize_image(image_data, max_size):
+def resize_image(image_data: bytes, max_size: int) -> bytes:
     # バイナリデータを画像オブジェクトに変換
     image = Image.open(io.BytesIO(image_data))
 
