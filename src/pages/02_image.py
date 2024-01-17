@@ -32,15 +32,15 @@ def resize_image(image_data: bytes, max_size: int) -> bytes:
     return byte_arr.getvalue()
 
 def main():
-    st.title('😱Generative AI with Google API')
+    st.title('画像にタイトルをつける')
     # see also: https://docs.kanaries.net/ja/topics/Streamlit/streamlit-upload-file
     uploaded_file = st.file_uploader("ファイルを選択してください", type=['avif', 'webp', 'png', 'jpg'])
     prompt = st.text_area('Prompt', 'この画像にタイトルをつけて。')
-    api_key = st.text_input('Google AI Studio API Key' '')
+    api_key = st.text_input('Google AI Studio API Key', '', type="password")
     # APIキーの設定
     genai.configure(api_key=api_key)
 
-    if uploaded_file is not None and prompt.strip() != '':
+    if uploaded_file is not None and prompt.strip() != '' and api_key.strip() != '':
         pushed = st.button('Request')
 
         if pushed:
@@ -71,3 +71,5 @@ def main():
 
             st.image(resized_bytes_data)
 
+
+main()

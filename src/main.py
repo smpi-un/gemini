@@ -1,5 +1,3 @@
-import image
-import text
-import pdf
+import streamlit as st
 
-pdf.main()
+st.title("Gemini Pro テストアプリ")
