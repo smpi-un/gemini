@@ -4,10 +4,12 @@ import os
 from PIL import Image
 import io
 import fitz  # PyMuPDF
+import base64
+import requests
+from openai import OpenAI
 
-import fitz  # PyMuPDF
-import io
-from PIL import Image
+
+
 
 def resize_image(image, max_size: int):
     if max_size <= 0:
@@ -48,7 +50,7 @@ def main():
     # see also: https://docs.kanaries.net/ja/topics/Streamlit/streamlit-upload-file
     uploaded_file = st.file_uploader("ファイルを選択してください", type=['pdf'])
     default_prompt = """
-この画像たちはPDFの最初の3ページである。このPDFに対していい感じに日本語のファイル名をつけたい。
+この画像たちはPDFの一部のページである。このPDFに対していい感じに日本語のファイル名をつけたい。
 まずOCRをして内容を読み、固有名詞を中心にキーワードを抽出し、なるべくバリエーションに富んだ日本語のファイル名の候補を複数提案して。
 結果は以下のjsonフォーマットでページ名の候補を挙げて。ただしおすすめ度は0〜100の整数でつけて。
 {
@@ -63,43 +65,99 @@ def main():
     prompt = st.text_area('Prompt', default_prompt)
     page_num_str = st.text_input('送信するページ数(最大16)', 16)
     max_size_str = st.text_input('画像を縮小する場合の長辺のサイズ(px)(0の場合は縮小しない)', 1280)
-    api_key = st.text_input('Google AI Studio API Key', '', type="password")
+    selected_model = st.radio('モデル選択', ('gemini-pro-vision', 'gpt-4-vision-preview'))
 
-    if uploaded_file is not None and prompt.strip() != '' and api_key.strip() != '' and page_num_str.isnumeric() and max_size_str.isnumeric():
-        pushed = st.button('Request')
-        page_num = int(page_num_str)
-        max_size = int(max_size_str)
+    match selected_model:
+        case 'gemini-pro-vision':
+            gemini_api_key = st.text_input('Google AI Studio API Key', '', type="password")
+            openai_api_key = ''
+        case 'gpt-4-vision-preview':
+            openai_api_key = st.text_input('OpenAI API Key', '', type="password")
+            gemini_api_key = ''
+        case _:
+            openai_api_key = ''
+            gemini_api_key = ''
 
-        if pushed:
-            # APIキーの設定
-            genai.configure(api_key=api_key)
-            # バイトとしてファイルを読み取る場合：
-            bytes_data = uploaded_file.getvalue()
-            # st.write(bytes_data)
 
-            ext = os.path.splitext(uploaded_file.name)[1][1:]
+    # 準備OK?
+    ready = uploaded_file is not None and \
+            prompt.strip() != '' and \
+            (gemini_api_key.strip() != '' or openai_api_key != '') and \
+            page_num_str.isnumeric() and \
+            max_size_str.isnumeric()
 
-            images = pdf_to_images(bytes_data, max_size)
+    pushed = st.button('Request', disabled=not ready)
+    page_num = int(page_num_str)
+    max_size = int(max_size_str)
 
-            # モデルの設定
-            model = genai.GenerativeModel('gemini-pro-vision')
+    if pushed:
+        # バイトとしてファイルを読み取る場合：
+        bytes_data = uploaded_file.getvalue()
+        # st.write(bytes_data)
 
-            send_page_num = min(page_num, 16) if page_num > 0 else 16
-            st.write(prompt)
-            for image in images[:send_page_num]:
-              st.image(image)
+        ext = os.path.splitext(uploaded_file.name)[1][1:]
 
-            pictures = [{
-                'mime_type': f'image/webp',
-                'data': image
-            } for image in images]
+        images = pdf_to_images(bytes_data, max_size)
+        # st.image(images[0])
+        st.write(prompt)
 
-            contents = [prompt] + pictures[:send_page_num]
+        send_page_num = min(page_num, 16) if page_num > 0 else 16
+        for image in images[:send_page_num]:
+            st.image(image)
 
-            response = model.generate_content(contents=contents)
-            st.write(response.text)
+        match selected_model:
+            case 'gemini-pro-vision':
+                # APIキーの設定
+                genai.configure(api_key=gemini_api_key)
 
-            # st.image(resized_bytes_data)
+                # モデルの設定
+                model = genai.GenerativeModel('gemini-pro-vision')
+
+                pictures = [{
+                    'mime_type': f'image/webp',
+                    'data': image
+                } for image in images]
+
+                contents = [prompt] + pictures[:send_page_num]
+
+                response = model.generate_content(contents=contents)
+                st.write(response.text)
+
+            case 'gpt-4-vision-preview':
+                client = OpenAI(api_key=openai_api_key)
+                base64_image = base64.b64encode(images[0]).decode('utf-8')
+                # ext = os.path.splitext(uploaded_file.name)[1][1:]
+                ext = 'webp'
+                messages = [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "You should return only JSON data." + prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/{ext};base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ]
+                print( messages)
+                completion = client.chat.completions.create(
+                    # model="gpt-4-1106-preview",
+                    model="gpt-4-vision-preview",
+                    messages=messages,
+                    # response_format={"type":"json_object"},
+                    max_tokens=300,
+                )
+
+                st.write(completion.choices[0].message)
+
+
+
 
 
 
