@@ -67,16 +67,15 @@ def main():
     max_size_str = st.text_input('画像を縮小する場合の長辺のサイズ(px)(0の場合は縮小しない)', 1280)
     selected_model = st.radio('モデル選択', ('gemini-pro-vision', 'gpt-4-vision-preview'))
 
-    match selected_model:
-        case 'gemini-pro-vision':
-            gemini_api_key = st.text_input('Google AI Studio API Key', '', type="password")
-            openai_api_key = ''
-        case 'gpt-4-vision-preview':
-            openai_api_key = st.text_input('OpenAI API Key', '', type="password")
-            gemini_api_key = ''
-        case _:
-            openai_api_key = ''
-            gemini_api_key = ''
+    if selected_model == 'gemini-pro-vision':
+        gemini_api_key = st.text_input('Google AI Studio API Key', '', type="password")
+        openai_api_key = ''
+    elif selected_model ==  'gpt-4-vision-preview':
+        openai_api_key = st.text_input('OpenAI API Key', '', type="password")
+        gemini_api_key = ''
+    else:
+        openai_api_key = ''
+        gemini_api_key = ''
 
 
     # 準備OK?
@@ -105,56 +104,55 @@ def main():
         for image in images[:send_page_num]:
             st.image(image)
 
-        match selected_model:
-            case 'gemini-pro-vision':
-                # APIキーの設定
-                genai.configure(api_key=gemini_api_key)
+        if selected_model == 'gemini-pro-vision':
+            # APIキーの設定
+            genai.configure(api_key=gemini_api_key)
 
-                # モデルの設定
-                model = genai.GenerativeModel('gemini-pro-vision')
+            # モデルの設定
+            model = genai.GenerativeModel('gemini-pro-vision')
 
-                pictures = [{
-                    'mime_type': f'image/webp',
-                    'data': image
-                } for image in images]
+            pictures = [{
+                'mime_type': f'image/webp',
+                'data': image
+            } for image in images]
 
-                contents = [prompt] + pictures[:send_page_num]
+            contents = [prompt] + pictures[:send_page_num]
 
-                response = model.generate_content(contents=contents)
-                st.write(response.text)
+            response = model.generate_content(contents=contents)
+            st.write(response.text)
 
-            case 'gpt-4-vision-preview':
-                client = OpenAI(api_key=openai_api_key)
-                base64_image = base64.b64encode(images[0]).decode('utf-8')
-                # ext = os.path.splitext(uploaded_file.name)[1][1:]
-                ext = 'webp'
-                messages = [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": "You should return only JSON data." + prompt
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/{ext};base64,{base64_image}"
-                                }
+        elif selected_model == 'gpt-4-vision-preview':
+            client = OpenAI(api_key=openai_api_key)
+            base64_image = base64.b64encode(images[0]).decode('utf-8')
+            # ext = os.path.splitext(uploaded_file.name)[1][1:]
+            ext = 'webp'
+            messages = [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "You should return only JSON data." + prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/{ext};base64,{base64_image}"
                             }
-                        ]
-                    }
-                ]
-                print( messages)
-                completion = client.chat.completions.create(
-                    # model="gpt-4-1106-preview",
-                    model="gpt-4-vision-preview",
-                    messages=messages,
-                    # response_format={"type":"json_object"},
-                    max_tokens=300,
-                )
+                        }
+                    ]
+                }
+            ]
+            print( messages)
+            completion = client.chat.completions.create(
+                # model="gpt-4-1106-preview",
+                model="gpt-4-vision-preview",
+                messages=messages,
+                # response_format={"type":"json_object"},
+                max_tokens=300,
+            )
 
-                st.write(completion.choices[0].message)
+            st.write(completion.choices[0].message)
 
 
 
