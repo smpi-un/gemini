@@ -32,8 +32,13 @@ def render_page(doc, pagenum: int, max_size: int):
     img.save(byte_arr, format='WEBP', quality=compression_rate)
     return byte_arr.getvalue()
 
-def pdf_to_images(pdf_bytes: bytes, max_size: int) -> list[bytes]:
+def pdf_to_images(pdf_bytes: bytes, max_size: int, password: str) -> list[bytes]:
     doc = fitz.open("pdf", pdf_bytes)
+
+    if doc.needs_pass == 1:
+        success = doc.authenticate(password)
+        if not success:
+            return []
 
     byte_images = []
     for i in range(len(doc)):
@@ -63,6 +68,7 @@ def main():
     prompt = st.text_area('Prompt', default_prompt)
     page_num_str = st.text_input('送信するページ数(最大16)', 16)
     max_size_str = st.text_input('画像を縮小する場合の長辺のサイズ(px)(0の場合は縮小しない)', 1280)
+    pdf_password = st.text_input('PDF読み取りパスワード', '', type="password")
     api_key = st.text_input('Google AI Studio API Key', '', type="password")
 
     if uploaded_file is not None and prompt.strip() != '' and api_key.strip() != '' and page_num_str.isnumeric() and max_size_str.isnumeric():
@@ -79,7 +85,10 @@ def main():
 
             ext = os.path.splitext(uploaded_file.name)[1][1:]
 
-            images = pdf_to_images(bytes_data, max_size)
+            images = pdf_to_images(bytes_data, max_size, pdf_password)
+            if len(images) == 0:
+                st.text('password is wrong')
+                return
 
             # モデルの設定
             model = genai.GenerativeModel('gemini-pro-vision')
